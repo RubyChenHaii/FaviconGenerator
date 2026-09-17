@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Favicon Generator</title>
+<style>
+  :root{
+    --bg:#f4f5f7;
+    --panel:#ffffff;
+    --ink:#1a1d23;
+    --ink-soft:#5b616e;
+    --line:#dde1e6;
+    --accent:#155e63;
+    --accent-soft:#e4f0ef;
+    --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    --sans: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--sans);
+    line-height:1.5;
+    padding:32px 16px 80px;
+  }
+  .wrap{
+    max-width:640px;
+    margin:0 auto;
+  }
+  h1{
+    font-size:1.5rem;
+    font-weight:700;
+    margin:0 0 4px;
+    letter-spacing:-0.01em;
+  }
+  .sub{
+    color:var(--ink-soft);
+    margin:0 0 28px;
+    font-size:0.94rem;
+    max-width:60ch;
+  }
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:20px;
+    margin-bottom:16px;
+  }
+  .panel h2{
+    font-size:0.95rem;
+    font-weight:700;
+    margin:0 0 14px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  .file-row{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    flex-wrap:wrap;
+  }
+  .file-btn{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    background:var(--accent);
+    color:#fff;
+    border:none;
+    border-radius:3px;
+    padding:9px 16px;
+    font-size:0.9rem;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .file-btn:hover{background:#0f4a4e;}
+  input[type=file]{display:none;}
+  #fileName{color:var(--ink-soft); font-size:0.88rem;}
+  #preview{
+    width:48px;height:48px;
+    border:1px solid var(--line);
+    border-radius:3px;
+    object-fit:contain;
+    display:none;
+    background:
+      linear-gradient(45deg,#eee 25%,transparent 25%) -6px 0/12px 12px,
+      linear-gradient(-45deg,#eee 25%,transparent 25%) -6px 0/12px 12px,
+      linear-gradient(45deg,transparent 75%,#eee 75%) -6px 0/12px 12px,
+      linear-gradient(-45deg,transparent 75%,#eee 75%) -6px 0/12px 12px,
+      #fff;
+  }
+  #imgWarning{font-size:0.82rem;color:#8a5a00;margin-top:8px;display:none;}
+
+  .btn-group{display:flex;gap:6px;flex-wrap:wrap;}
+  .btn-group button{
+    background:none;
+    border:1px solid var(--line);
+    border-radius:3px;
+    padding:5px 10px;
+    font-size:0.78rem;
+    color:var(--ink);
+    cursor:pointer;
+    font-family:var(--sans);
+  }
+  .btn-group button:hover{border-color:var(--accent); color:var(--accent);}
+
+  .group{margin-bottom:16px;}
+  .group:last-child{margin-bottom:0;}
+  .group-title{
+    font-size:0.78rem;
+    font-weight:700;
+    color:var(--accent);
+    margin-bottom:8px;
+  }
+  .checks{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:6px 12px;
+  }
+  @media (max-width:480px){ .checks{grid-template-columns:1fr;} }
+  .check-item{
+    display:flex;
+    align-items:flex-start;
+    gap:8px;
+    font-size:0.85rem;
+    cursor:pointer;
+  }
+  .check-item input{margin-top:3px;}
+  .check-item .size-num{font-family:var(--mono); color:var(--ink); font-weight:600;}
+  .check-item .size-desc{color:var(--ink-soft);}
+
+  .extras label{
+    display:flex; align-items:center; gap:8px;
+    font-size:0.88rem; margin-bottom:8px; cursor:pointer;
+  }
+  .extras label:last-child{margin-bottom:0;}
+
+  .generate-btn{
+    width:100%;
+    background:var(--accent);
+    color:#fff;
+    border:none;
+    border-radius:4px;
+    padding:14px;
+    font-size:1rem;
+    font-weight:700;
+    cursor:pointer;
+    letter-spacing:0.01em;
+  }
+  .generate-btn:hover{background:#0f4a4e;}
+  .generate-btn:disabled{background:#9aa2a8; cursor:not-allowed;}
+
+  #status{
+    margin-top:12px;
+    font-size:0.85rem;
+    color:var(--ink-soft);
+    min-height:1.2em;
+  }
+  #progressBar{
+    width:100%;
+    height:6px;
+    margin-top:10px;
+    display:none;
+    accent-color:var(--accent);
+  }
+  .footnote{
+    font-size:0.78rem;
+    color:var(--ink-soft);
+    margin-top:24px;
+    text-align:center;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Favicon Generator</h1>
+  <p class="sub">選擇圖片、勾選你要的尺寸，直接在瀏覽器裡產生 PNG／favicon.ico／manifest 片段並打包成 zip 下載。不需要安裝任何東西，離線也能用。</p>
+
+  <div class="panel">
+    <h2>來源圖片</h2>
+    <div class="file-row">
+      <label class="file-btn" for="fileInput">選擇圖片…</label>
+      <input type="file" id="fileInput" accept="image/*">
+      <img id="preview" alt="預覽">
+      <span id="fileName">尚未選擇檔案</span>
+    </div>
+    <div id="imgWarning"></div>
+  </div>
+
+  <div class="panel">
+    <h2>
+      <span>選擇要輸出的尺寸</span>
+      <span class="btn-group">
+        <button type="button" id="selectAllBtn">全選</button>
+        <button type="button" id="selectNoneBtn">全不選</button>
+        <button type="button" id="selectRecommendedBtn">建議值</button>
+      </span>
+    </h2>
+    <div id="groupsContainer"></div>
+  </div>
+
+  <div class="panel extras">
+    <h2 style="margin-bottom:12px;">額外輸出</h2>
+    <label><input type="checkbox" id="makeIco" checked> 多尺寸 favicon.ico</label>
+    <label><input type="checkbox" id="makeManifest" checked> manifest-icons-snippet.json 與 html-snippet.txt</label>
+  </div>
+
+  <button class="generate-btn" id="generateBtn">產生並下載 ZIP</button>
+  <progress id="progressBar" value="0" max="1"></progress>
+  <div id="status"></div>
+
+  <p class="footnote">全部處理都在你的瀏覽器本機端完成，圖片不會被上傳到任何地方。</p>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------------------------------------------------------------
+  // 尺寸資料
+  // ---------------------------------------------------------------
+  const ICON_GROUPS = [
+    { title: "瀏覽器 Favicon", items: [
+      [16, "瀏覽器分頁"],
+      [32, "瀏覽器分頁 (Retina)"],
+      [48, "Favicon / Windows 網站圖示"],
+    ]},
+    { title: "Apple / iOS", items: [
+      [57, "舊款 iPhone"],
+      [60, "iPhone"],
+      [72, "舊款 iPad"],
+      [76, "iPad"],
+      [114, "iPhone Retina"],
+      [120, "iPhone Retina"],
+      [152, "iPad Retina"],
+      [167, "iPad Pro"],
+      [180, "Apple Touch Icon（建議）"],
+    ]},
+    { title: "Android / PWA", items: [
+      [96, "Android / Google TV"],
+      [128, "Chrome Web Store / PWA"],
+      [144, "Windows 磁貼 / Android"],
+      [192, "Android / PWA 標準（建議）"],
+      [256, "通用大圖示"],
+      [384, "PWA"],
+      [512, "PWA Maskable / 標準大圖（建議）"],
+    ]},
+    { title: "Windows 磁貼 (Tiles)", items: [
+      [70, "小磁貼"],
+      [150, "中磁貼"],
+      [310, "大磁貼"],
+    ]},
+    { title: "其他 / 高解析度", items: [
+      [1024, "App Store / 高解析度來源留存"],
+    ]},
+  ];
+  const RECOMMENDED = new Set([16, 32, 48, 180, 192, 512]);
+
+  const sizeCheckboxes = {}; // size -> checkbox element
+  const groupsContainer = document.getElementById("groupsContainer");
+
+  ICON_GROUPS.forEach(group => {
+    const groupEl = document.createElement("div");
+    groupEl.className = "group";
+    const title = document.createElement("div");
+    title.className = "group-title";
+    title.textContent = group.title;
+    groupEl.appendChild(title);
+
+    const checksEl = document.createElement("div");
+    checksEl.className = "checks";
+    group.items.forEach(([size, desc]) => {
+      const label = document.createElement("label");
+      label.className = "check-item";
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = RECOMMENDED.has(size);
+      cb.dataset.size = size;
+      sizeCheckboxes[size] = cb;
+      const textSpan = document.createElement("span");
+      textSpan.innerHTML = `<span class="size-num">${size}×${size}</span> — <span class="size-desc">${desc}</span>`;
+      label.appendChild(cb);
+      label.appendChild(textSpan);
+      checksEl.appendChild(label);
+    });
+    groupEl.appendChild(checksEl);
+    groupsContainer.appendChild(groupEl);
+  });
+
+  document.getElementById("selectAllBtn").onclick = () =>
+    Object.values(sizeCheckboxes).forEach(cb => cb.checked = true);
+  document.getElementById("selectNoneBtn").onclick = () =>
+    Object.values(sizeCheckboxes).forEach(cb => cb.checked = false);
+  document.getElementById("selectRecommendedBtn").onclick = () =>
+    Object.entries(sizeCheckboxes).forEach(([size, cb]) => cb.checked = RECOMMENDED.has(Number(size)));
+
+  // ---------------------------------------------------------------
+  // 來源圖片載入 + 預覽
+  // ---------------------------------------------------------------
+  let sourceImage = null; // HTMLImageElement
+  const fileInput = document.getElementById("fileInput");
+  const fileNameEl = document.getElementById("fileName");
+  const previewEl = document.getElementById("preview");
+  const imgWarning = document.getElementById("imgWarning");
+
+  fileInput.addEventListener("change", () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+    fileNameEl.textContent = file.name;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        sourceImage = img;
+        previewEl.src = e.target.result;
+        previewEl.style.display = "inline-block";
+        imgWarning.style.display = "none";
+        if (img.width !== img.height) {
+          imgWarning.textContent = `圖片為 ${img.width}×${img.height}（非正方形），產生時會自動置中並補透明邊。`;
+          imgWarning.style.display = "block";
+        } else if (Math.max(img.width, img.height) < 512) {
+          imgWarning.textContent = `圖片僅 ${img.width}×${img.height}，建議使用至少 512×512 以上以避免放大失真。`;
+          imgWarning.style.display = "block";
+        }
+      };
+      img.onerror = () => alert("無法讀取這張圖片，請換一張。");
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+
+  // ---------------------------------------------------------------
+  // 產生正方形來源畫布（非正方形圖片置中補透明）
+  // ---------------------------------------------------------------
+  function makeSquareCanvas(img) {
+    const side = Math.max(img.width, img.height);
+    const c = document.createElement("canvas");
+    c.width = side; c.height = side;
+    const ctx = c.getContext("2d");
+    ctx.clearRect(0, 0, side, side);
+    const dx = Math.floor((side - img.width) / 2);
+    const dy = Math.floor((side - img.height) / 2);
+    ctx.drawImage(img, dx, dy);
+    return c;
+  }
+
+  function resizeCanvas(srcCanvas, size) {
+    const c = document.createElement("canvas");
+    c.width = size; c.height = size;
+    const ctx = c.getContext("2d");
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.clearRect(0, 0, size, size);
+    ctx.drawImage(srcCanvas, 0, 0, size, size);
+    return c;
+  }
+
+  function canvasToPngBytes(canvas) {
+    return new Promise((resolve, reject) => {
+      canvas.toBlob(blob => {
+        if (!blob) return reject(new Error("canvas.toBlob 失敗"));
+        blob.arrayBuffer().then(buf => resolve(new Uint8Array(buf)));
+      }, "image/png");
+    });
+  }
+
+  // ---------------------------------------------------------------
+  // 純 JS ZIP 封裝器（store，不壓縮，零依賴）
+  // ---------------------------------------------------------------
+  const CRC_TABLE = (() => {
+    const table = new Uint32Array(256);
+    for (let n = 0; n < 256; n++) {
+      let c = n;
+      for (let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+      table[n] = c >>> 0;
+    }
+    return table;
+  })();
+
+  function crc32(bytes) {
+    let crc = 0xFFFFFFFF;
+    for (let i = 0; i < bytes.length; i++) {
+      crc = CRC_TABLE[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
+    }
+    return (crc ^ 0xFFFFFFFF) >>> 0;
+  }
+
+  function u16(view, offset, val){ view.setUint16(offset, val, true); }
+  function u32(view, offset, val){ view.setUint32(offset, val, true); }
+
+  function buildZip(files) {
+    // files: [{name: string, data: Uint8Array}]
+    const encoder = new TextEncoder();
+    const localParts = [];
+    const centralParts = [];
+    let offset = 0;
+
+    // 固定 DOS 時間/日期（不影響解壓縮，用一個合理常數即可）
+    const dosTime = 0;
+    const dosDate = (2020 - 1980) << 9 | (1 << 5) | 1;
+
+    files.forEach(file => {
+      const nameBytes = encoder.encode(file.name);
+      const data = file.data;
+      const crc = crc32(data);
+
+      const localHeader = new ArrayBuffer(30);
+      const lv = new DataView(localHeader);
+      u32(lv, 0, 0x04034b50);
+      u16(lv, 4, 20);
+      u16(lv, 6, 0);
+      u16(lv, 8, 0);
+      u16(lv, 10, dosTime);
+      u16(lv, 12, dosDate);
+      u32(lv, 14, crc);
+      u32(lv, 18, data.length);
+      u32(lv, 22, data.length);
+      u16(lv, 26, nameBytes.length);
+      u16(lv, 28, 0);
+
+      localParts.push(new Uint8Array(localHeader), nameBytes, data);
+
+      const centralHeader = new ArrayBuffer(46);
+      const cv = new DataView(centralHeader);
+      u32(cv, 0, 0x02014b50);
+      u16(cv, 4, 20);
+      u16(cv, 6, 20);
+      u16(cv, 8, 0);
+      u16(cv, 10, 0);
+      u16(cv, 12, dosTime);
+      u16(cv, 14, dosDate);
+      u32(cv, 16, crc);
+      u32(cv, 20, data.length);
+      u32(cv, 24, data.length);
+      u16(cv, 28, nameBytes.length);
+      u16(cv, 30, 0);
+      u16(cv, 32, 0);
+      u16(cv, 34, 0);
+      u16(cv, 36, 0);
+      u32(cv, 38, 0);
+      u32(cv, 42, offset);
+
+      centralParts.push(new Uint8Array(centralHeader), nameBytes);
+
+      offset += localHeader.byteLength + nameBytes.length + data.length;
+    });
+
+    const centralSize = centralParts.reduce((s, p) => s + p.length, 0);
+    const centralOffset = offset;
+
+    const endRecord = new ArrayBuffer(22);
+    const ev = new DataView(endRecord);
+    u32(ev, 0, 0x06054b50);
+    u16(ev, 4, 0);
+    u16(ev, 6, 0);
+    u16(ev, 8, files.length);
+    u16(ev, 10, files.length);
+    u32(ev, 12, centralSize);
+    u32(ev, 16, centralOffset);
+    u16(ev, 20, 0);
+
+    const allParts = [...localParts, ...centralParts, new Uint8Array(endRecord)];
+    return new Blob(allParts, { type: "application/zip" });
+  }
+
+  // ---------------------------------------------------------------
+  // ICO 封裝器（內嵌 PNG 資料，Vista 以後的 Windows 都支援）
+  // ---------------------------------------------------------------
+  function buildIco(entries) {
+    // entries: [{size, data: Uint8Array}]
+    const count = entries.length;
+    const headerSize = 6 + count * 16;
+    let totalSize = headerSize;
+    entries.forEach(e => totalSize += e.data.length);
+
+    const buf = new ArrayBuffer(totalSize);
+    const view = new DataView(buf);
+    const bytes = new Uint8Array(buf);
+
+    u16(view, 0, 0);      // reserved
+    u16(view, 2, 1);      // type: icon
+    u16(view, 4, count);
+
+    let dataOffset = headerSize;
+    entries.forEach((e, i) => {
+      const entryOffset = 6 + i * 16;
+      const dim = e.size >= 256 ? 0 : e.size; // 256 以上用 0 表示
+      bytes[entryOffset] = dim;       // width
+      bytes[entryOffset + 1] = dim;   // height
+      bytes[entryOffset + 2] = 0;     // color count
+      bytes[entryOffset + 3] = 0;     // reserved
+      u16(view, entryOffset + 4, 1);  // planes
+      u16(view, entryOffset + 6, 32); // bit count
+      u32(view, entryOffset + 8, e.data.length);
+      u32(view, entryOffset + 12, dataOffset);
+      bytes.set(e.data, dataOffset);
+      dataOffset += e.data.length;
+    });
+
+    return new Uint8Array(buf);
+  }
+
+  // ---------------------------------------------------------------
+  // 產生流程
+  // ---------------------------------------------------------------
+  const generateBtn = document.getElementById("generateBtn");
+  const statusEl = document.getElementById("status");
+  const progressBar = document.getElementById("progressBar");
+
+  function setStatus(text) { statusEl.textContent = text; }
+
+  generateBtn.addEventListener("click", async () => {
+    if (!sourceImage) { alert("請先選擇來源圖片"); return; }
+
+    const selectedSizes = Object.entries(sizeCheckboxes)
+      .filter(([, cb]) => cb.checked)
+      .map(([size]) => Number(size))
+      .sort((a, b) => a - b);
+
+    if (selectedSizes.length === 0) { alert("請至少勾選一個尺寸"); return; }
+
+    generateBtn.disabled = true;
+    progressBar.style.display = "block";
+    progressBar.max = selectedSizes.length + 2;
+    progressBar.value = 0;
+    setStatus("產生中…");
+
+    try {
+      const squareCanvas = makeSquareCanvas(sourceImage);
+      const zipFiles = [];
+      const pngBySize = {}; // size -> Uint8Array (for reuse in ico)
+
+      for (let i = 0; i < selectedSizes.length; i++) {
+        const size = selectedSizes[i];
+        const resized = resizeCanvas(squareCanvas, size);
+        const pngBytes = await canvasToPngBytes(resized);
+        pngBySize[size] = pngBytes;
+        zipFiles.push({ name: `icons/icon-${size}x${size}.png`, data: pngBytes });
+        progressBar.value = i + 1;
+        setStatus(`已產生 icon-${size}x${size}.png`);
+      }
+
+      // favicon.ico
+      if (document.getElementById("makeIco").checked) {
+        let icoSizes = selectedSizes.filter(s => s <= 256);
+        if (icoSizes.length === 0) icoSizes = [16, 32, 48];
+        const icoEntries = [];
+        for (const s of icoSizes) {
+          let data = pngBySize[s];
+          if (!data) {
+            const resized = resizeCanvas(squareCanvas, s);
+            data = await canvasToPngBytes(resized);
+          }
+          icoEntries.push({ size: s, data });
+        }
+        const icoBytes = buildIco(icoEntries);
+        zipFiles.push({ name: "favicon.ico", data: icoBytes });
+        setStatus("已產生 favicon.ico");
+      }
+      progressBar.value = selectedSizes.length + 1;
+
+      // manifest + html snippet
+      if (document.getElementById("makeManifest").checked) {
+        const icons = selectedSizes.map(s => ({
+          src: `icons/icon-${s}x${s}.png`,
+          sizes: `${s}x${s}`,
+          type: "image/png",
+        }));
+        const manifestJson = JSON.stringify({ icons }, null, 2);
+        zipFiles.push({ name: "manifest-icons-snippet.json", data: new TextEncoder().encode(manifestJson) });
+
+        const lines = ["<!-- 將以下標籤加入 <head> 中，依需求增減 -->"];
+        if (selectedSizes.includes(32)) lines.push(`<link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32x32.png">`);
+        if (selectedSizes.includes(16)) lines.push(`<link rel="icon" type="image/png" sizes="16x16" href="icons/icon-16x16.png">`);
+        lines.push(`<link rel="icon" href="favicon.ico">`);
+        if (selectedSizes.includes(180)) lines.push(`<link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180x180.png">`);
+        lines.push(`<link rel="manifest" href="manifest.json">`);
+        zipFiles.push({ name: "html-snippet.txt", data: new TextEncoder().encode(lines.join("\n")) });
+      }
+      progressBar.value = selectedSizes.length + 2;
+
+      setStatus("打包 zip 中…");
+      const zipBlob = buildZip(zipFiles);
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "favicons.zip";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+
+      setStatus(`完成！已下載 favicons.zip（共 ${zipFiles.length} 個檔案）`);
+    } catch (err) {
+      console.error(err);
+      setStatus("發生錯誤：" + err.message);
+      alert("產生失敗：" + err.message);
+    } finally {
+      generateBtn.disabled = false;
+    }
+  });
+})();
+</script>
+</body>
+</html>
